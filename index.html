@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard App</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --main-color: #ffffff;
+            --text-color: #333;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --secondary-color: #6c757d;
+            --secondary-hover: #5a6268;
+            --success-color: #28a745;
+            --success-hover: #218838;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --border-color: #ddd;
+            --shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        main {
+            background: var(--main-color);
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+        }
+
+        /* --- MODIFIED --- Form Styles */
+        #add-word-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        #word-input, #definition-input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        #definition-input {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            color: white;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        #random-word-display-container {
+            min-height: 100px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 15px;
+        }
+        #random-word-display-container h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            word-break: break-word;
+        }
+        #random-word-display-container p {
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        .btn-reveal {
+            background-color: var(--success-color);
+        }
+        .btn-reveal:hover {
+            background-color: var(--success-hover);
+        }
+        
+        #word-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+        #word-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align to top for multi-line definitions */
+            padding: 15px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #word-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* --- NEW --- Styles for the word/definition content in the list */
+        .word-content {
+            flex-grow: 1;
+            padding-right: 15px;
+        }
+        .word-content strong {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            display: block;
+        }
+        .word-content p {
+            font-size: 0.95rem;
+            color: #666;
+            margin: 5px 0 0 0;
+            word-break: break-word;
+        }
+        
+        .delete-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 2px; /* Small top margin for alignment */
+        }
+        .delete-btn:hover {
+            background-color: var(--danger-hover);
+        }
+        .data-management {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #import-file-input {
+            display: none;
+        }
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <!-- --- MODIFIED --- Title -->
+        <h1>Flashcard App</h1>
+
+        <!-- --- MODIFIED --- Form for adding new word and definition -->
+        <form id="add-word-form">
+            <div class="form-group">
+                <label for="word-input">Word</label>
+                <input type="text" id="word-input" placeholder="e.g., Serendipity" required>
+            </div>
+            <div class="form-group">
+                <label for="definition-input">Definition</label>
+                <textarea id="definition-input" placeholder="The occurrence and development of events by chance..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Word</button>
+        </form>
+        
+        <div id="random-word-display-container">
+             <!-- Random word will be displayed here -->
+        </div>
+
+        <ul id="word-list">
+            <!-- Words will be dynamically inserted here by JavaScript -->
+        </ul>
+
+        <div class="data-management">
+            <button id="list-all-btn" class="btn btn-secondary">List All Words</button>
+            <!-- --- MODIFIED --- Button text changed -->
+            <button id="random-word-btn" class="btn btn-secondary">Show Random Word</button>
+            
+            <button id="export-btn" class="btn btn-secondary">Export to JSON</button>
+            <label for="import-file-input" class="btn btn-secondary">Import from JSON</label>
+            <input type="file" id="import-file-input" accept=".json">
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
