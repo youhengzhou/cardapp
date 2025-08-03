@@ -21,7 +21,7 @@
             --shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -227,9 +227,11 @@
             <!-- --- MODIFIED --- Button text changed -->
             <button id="random-word-btn" class="btn btn-secondary">Show Random Word</button>
             
-            <button id="export-btn" class="btn btn-secondary">Export to JSON</button>
-            <label for="import-file-input" class="btn btn-secondary">Import from JSON</label>
-            <input type="file" id="import-file-input" accept=".json">
+            <!-- --- MODIFIED --- Changed to CSV -->
+            <button id="export-btn" class="btn btn-secondary">Export to CSV</button>
+            <label for="import-file-input" class="btn btn-secondary">Import from CSV</label>
+            <!-- --- MODIFIED --- Changed accept to .csv -->
+            <input type="file" id="import-file-input" accept=".csv">
         </div>
     </main>
 
