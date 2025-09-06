@@ -91,6 +91,10 @@
                 text-decoration: none;
                 white-space: nowrap;
             }
+            .btn svg {
+                width: 20px;
+                height: 20px;
+            }
             .btn:hover {
                 transform: translateY(-2px);
                 box-shadow: var(--shadow-medium);
@@ -203,6 +207,7 @@
                 box-shadow: var(--shadow-medium);
                 padding: 20px;
                 box-sizing: border-box;
+                overflow: hidden; /* NEW: Prevents large images from breaking card layout */
             }
             .card-back {
                 transform: rotateY(180deg);
@@ -219,6 +224,62 @@
                 font-family: "Cabin", sans-serif;
                 font-size: 1.2em;
                 color: var(--text-color);
+            }
+            /* --- ANIMATIONS FOR NEXT/PREVIOUS WORD --- */
+            @keyframes slideOutLeft {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(-100%);
+                    opacity: 0;
+                }
+            }
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            /* NEW: Animations for the "Previous" button */
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            @keyframes slideInLeft {
+                from {
+                    transform: translateX(-100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .slide-out-left {
+                animation: slideOutLeft 0.5s forwards;
+            }
+            .slide-in-right {
+                animation: slideInRight 0.5s forwards;
+            }
+            /* NEW: Classes for the "Previous" button animation */
+            .slide-out-right {
+                animation: slideOutRight 0.5s forwards;
+            }
+            .slide-in-left {
+                animation: slideInLeft 0.5s forwards;
             }
 
             .flashcard-controls {
@@ -264,7 +325,8 @@
                 margin: 40px 0;
             }
 
-            #add-word-form {
+            #add-word-form,
+            #edit-word-form {
                 display: flex;
                 flex-direction: column;
                 gap: 15px;
@@ -281,8 +343,12 @@
             }
             #word-input,
             #definition-input,
+            #image-url-input,
             #category-input,
-            #category-select {
+            #category-select,
+            #edit-word-input,
+            #edit-definition-input,
+            #edit-image-url-input {
                 padding: 12px;
                 border: 2px solid var(--border-color);
                 border-radius: 8px;
@@ -290,18 +356,15 @@
                 font-family: "Vollkorn", serif;
                 transition: border-color 0.2s;
                 background-color: white;
-                /* NEW: Added for consistency */
                 box-sizing: border-box;
                 width: 100%;
             }
 
-            /* NEW: Wrapper for custom select arrow */
             .select-wrapper {
                 position: relative;
                 width: 100%;
             }
 
-            /* NEW: Custom arrow for the select dropdown */
             .select-wrapper::after {
                 content: "";
                 position: absolute;
@@ -313,25 +376,30 @@
                 border-right: 6px solid transparent;
                 border-top: 6px solid var(--text-color);
                 transform: translateY(-50%);
-                pointer-events: none; /* Allows clicks to pass through */
+                pointer-events: none;
             }
 
-            /* NEW: Remove default arrow and add padding for custom arrow */
-            #category-select {
+            #category-select,
+            #edit-category-select {
                 -webkit-appearance: none;
                 -moz-appearance: none;
                 appearance: none;
-                padding-right: 40px; /* Make space for the arrow */
+                padding-right: 40px;
             }
 
             #word-input:focus,
             #definition-input:focus,
+            #image-url-input:focus,
             #category-input:focus,
-            #category-select:focus {
+            #category-select:focus,
+            #edit-word-input:focus,
+            #edit-definition-input:focus,
+            #edit-image-url-input:focus {
                 outline: none;
                 border-color: var(--accent-color-1);
             }
-            #definition-input {
+            #definition-input,
+            #edit-definition-input {
                 resize: vertical;
                 min-height: 80px;
             }
@@ -390,6 +458,11 @@
             .word-list li:last-child {
                 border-bottom: none;
             }
+            .word-actions {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
 
             .word-content {
                 flex-grow: 1;
@@ -407,8 +480,20 @@
                 margin: 5px 0 0 0;
                 word-break: break-word;
             }
+            /* NEW: Style for the image URL in the manage list */
+            .word-content .image-url-display {
+                font-size: 0.85em;
+                color: #999;
+                margin-top: 8px;
+                font-style: italic;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 400px;
+            }
 
-            .delete-btn {
+            .delete-btn,
+            .edit-btn {
                 background: none;
                 border: none;
                 cursor: pointer;
@@ -422,6 +507,55 @@
             }
             .delete-btn svg {
                 stroke: var(--danger-color);
+            }
+            .edit-btn:hover {
+                background-color: #e3eef2;
+            }
+            .edit-btn svg {
+                stroke: var(--accent-color-2);
+            }
+            /* MODAL STYLES */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            }
+            .modal-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .modal-content {
+                background: var(--bg-color);
+                padding: 30px 40px;
+                border-radius: 12px;
+                box-shadow: var(--shadow-heavy);
+                width: 90%;
+                max-width: 500px;
+                transform: scale(0.9);
+                transition: transform 0.3s ease;
+            }
+            .modal-overlay.active .modal-content {
+                transform: scale(1);
+            }
+            .modal-header {
+                text-align: center;
+                margin-bottom: 25px;
+            }
+            .modal-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 15px;
+                margin-top: 25px;
             }
         </style>
     </head>
@@ -498,6 +632,19 @@
                         </div>
                         <div class="card-back">
                             <div>
+                                <img
+                                    id="card-back-image"
+                                    src=""
+                                    alt="Flashcard Image"
+                                    style="
+                                        display: none;
+                                        max-width: 90%;
+                                        max-height: 120px;
+                                        border-radius: 8px;
+                                        margin-bottom: 15px;
+                                        object-fit: cover;
+                                    "
+                                />
                                 <h2 id="card-back-word"></h2>
                                 <p id="card-back-definition"></p>
                             </div>
@@ -506,11 +653,28 @@
                 </div>
 
                 <div class="flashcard-controls">
-                    <button class="btn btn-danger" id="next-word-btn">
+                    <button class="btn" id="prev-word-btn">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
                             fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <title>Previous card icon</title>
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        <span>Previous</span>
+                    </button>
+                    <button class="btn btn-primary" id="next-word-btn">
+                        <span>Next Word</span>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
                             stroke-width="2"
                             stroke-linecap="round"
                             stroke-linejoin="round"
@@ -518,7 +682,6 @@
                             <title>Next card icon</title>
                             <polyline points="9 18 15 12 9 6"></polyline>
                         </svg>
-                        <span>Next Word</span>
                     </button>
                 </div>
                 <div class="navigation-controls">
@@ -576,6 +739,16 @@
                                 required
                             ></textarea>
                         </div>
+                        <div class="form-group">
+                            <label for="image-url-input"
+                                >Image URL (Optional)</label
+                            >
+                            <input
+                                type="url"
+                                id="image-url-input"
+                                placeholder="e.g., https://example.com/image.png"
+                            />
+                        </div>
                         <button type="submit" class="btn btn-primary">
                             Add Word
                         </button>
@@ -585,11 +758,10 @@
 
                     <div class="data-management">
                         <button id="export-btn" class="btn">
-                            Export "Categories -> Words -> Definition" to CSV
+                            Export to CSV
                         </button>
                         <label for="import-file-input" class="btn"
-                            >Import "Categories -> Words -> Definition" from
-                            CSV</label
+                            >Import from CSV</label
                         >
                         <input
                             type="file"
@@ -604,6 +776,49 @@
                     </button>
                 </div>
             </section>
+
+            <!-- 4. EDIT WORD MODAL (NEW) -->
+            <div id="edit-word-modal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Edit Word</h2>
+                    </div>
+                    <form id="edit-word-form">
+                        <input type="hidden" id="edit-word-id" />
+                        <div class="form-group">
+                            <label for="edit-word-input">Word</label>
+                            <input type="text" id="edit-word-input" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-definition-input"
+                                >Definition</label
+                            >
+                            <textarea
+                                id="edit-definition-input"
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-image-url-input"
+                                >Image URL (Optional)</label
+                            >
+                            <input type="url" id="edit-image-url-input" />
+                        </div>
+                        <div class="modal-actions">
+                            <button
+                                type="button"
+                                id="cancel-edit-btn"
+                                class="btn"
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
 
         <footer>
@@ -613,7 +828,7 @@
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 // --- STATE AND CONSTANTS ---
-                const STORAGE_KEY = "tresCozyFlashcardsData"; // Updated storage key
+                const STORAGE_KEY = "tresCozyFlashcardsData";
 
                 let data = {
                     categories: [],
@@ -621,6 +836,8 @@
                 };
 
                 let currentReviewWords = [];
+                let reviewHistory = [];
+                let currentWord = null;
 
                 // --- DOM ELEMENT REFERENCES ---
                 const dashboardView = document.getElementById("dashboard-view");
@@ -644,6 +861,9 @@
                     "card-back-definition"
                 );
                 const nextWordBtn = document.getElementById("next-word-btn");
+                const prevWordBtn = document.getElementById("prev-word-btn");
+                const cardBackImage =
+                    document.getElementById("card-back-image");
 
                 const backToDashboardFlashcard = document.getElementById(
                     "back-to-dashboard-flashcard"
@@ -665,10 +885,28 @@
                 const wordInput = document.getElementById("word-input");
                 const definitionInput =
                     document.getElementById("definition-input");
+                const imageUrlInput =
+                    document.getElementById("image-url-input");
 
                 const exportBtn = document.getElementById("export-btn");
                 const importFileInput =
                     document.getElementById("import-file-input");
+
+                // --- NEW: EDIT MODAL REFERENCES ---
+                const editWordModal =
+                    document.getElementById("edit-word-modal");
+                const editWordForm = document.getElementById("edit-word-form");
+                const editWordId = document.getElementById("edit-word-id");
+                const editWordInput =
+                    document.getElementById("edit-word-input");
+                const editDefinitionInput = document.getElementById(
+                    "edit-definition-input"
+                );
+                const editImageUrlInput = document.getElementById(
+                    "edit-image-url-input"
+                );
+                const cancelEditBtn =
+                    document.getElementById("cancel-edit-btn");
 
                 // --- VIEW MANAGEMENT ---
                 const showView = (viewToShow) => {
@@ -692,7 +930,7 @@
                 }
 
                 function dataToCsv() {
-                    const header = "category,word,definition";
+                    const header = "category,word,definition,image";
                     const lines = data.words.map((word) => {
                         const category = data.categories.find(
                             (cat) => cat.id === word.categoryId
@@ -702,7 +940,7 @@
                             categoryName
                         )},${escapeCsvField(word.word)},${escapeCsvField(
                             word.definition
-                        )}`;
+                        )},${escapeCsvField(word.image)}`;
                     });
                     return [header, ...lines].join("\n");
                 }
@@ -711,11 +949,23 @@
                     const lines = csvString
                         .split(/\r?\n/)
                         .filter((line) => line.trim() !== "");
-                    const headerLine =
-                        lines.length > 0 ? lines[0].toLowerCase().trim() : "";
+                    if (lines.length === 0)
+                        return { categories: [], words: [] };
 
-                    if (headerLine === "category,word,definition") {
-                        lines.shift();
+                    const headerLine = lines[0]
+                        .toLowerCase()
+                        .trim()
+                        .replace(/['"]+/g, "");
+                    const hasHeader =
+                        headerLine.includes("category") &&
+                        headerLine.includes("word") &&
+                        headerLine.includes("definition");
+
+                    const hasImageColumn =
+                        hasHeader && headerLine.includes("image");
+
+                    if (hasHeader) {
+                        lines.shift(); // Remove header line
                     }
 
                     const newData = { categories: [], words: [] };
@@ -728,7 +978,8 @@
                             field.replace(/^"|"$/g, "").replace(/""/g, '"')
                         );
 
-                        const [catName, word, definition] = cleanFields;
+                        const [catName, word, definition, imageUrl] =
+                            cleanFields;
 
                         if (catName && word && definition) {
                             let categoryId;
@@ -749,6 +1000,7 @@
                                 categoryId: categoryId,
                                 word: word,
                                 definition: definition,
+                                image: imageUrl || "",
                                 createdAt: new Date().toISOString(),
                             });
                         }
@@ -810,7 +1062,7 @@
                         const option = document.createElement("option");
                         option.textContent = "Please create a category first";
                         option.disabled = true;
-                        option.selected = true; // NEW: Make it selected
+                        option.selected = true;
                         categorySelect.appendChild(option);
                     } else {
                         data.categories.forEach((cat) => {
@@ -837,15 +1089,24 @@
                         let wordListHtml = '<ul class="word-list">';
                         if (wordsInCategory.length > 0) {
                             wordsInCategory.forEach((word) => {
+                                const imageUrlDisplay = word.image
+                                    ? `<div class="image-url-display">Image: ${word.image}</div>`
+                                    : "";
                                 wordListHtml += `
                                     <li>
                                         <div class="word-content">
                                             <strong>${word.word}</strong>
                                             <p>${word.definition}</p>
+                                            ${imageUrlDisplay}
                                         </div>
-                                        <button class="delete-btn" data-word-id="${word.id}">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete word</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                        </button>
+                                        <div class="word-actions">
+                                            <button class="edit-btn" data-word-id="${word.id}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Edit word</title><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                            </button>
+                                            <button class="delete-btn" data-word-id="${word.id}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete word</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
                                     </li>
                                 `;
                             });
@@ -854,9 +1115,21 @@
                         }
                         wordListHtml += "</ul>";
 
+                        // *** START NEW CODE ***
+                        const deleteButtonHtml =
+                            wordsInCategory.length === 0
+                                ? `
+                            <button class="delete-btn delete-category-btn" data-category-id="${category.id}" title="Delete this empty category">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete category</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        `
+                                : "";
+                        // *** END NEW CODE ***
+
                         categoryItem.innerHTML = `
-                            <div class="category-header">
+                             <div class="category-header">
                                 <h3>${category.name}</h3>
+                                ${deleteButtonHtml}  <!-- NEW: Added delete button here -->
                             </div>
                             ${wordListHtml}
                         `;
@@ -869,25 +1142,78 @@
                     renderManageView();
                 };
 
-                const showNextCard = () => {
+                const updateCard = (word) => {
                     flashcard.classList.remove("is-flipped");
+                    cardFrontText.textContent = word.word;
+                    cardBackWord.textContent = word.word;
+                    cardBackDefinition.textContent = word.definition;
+
+                    if (word.image && word.image.trim() !== "") {
+                        cardBackImage.src = word.image;
+                        cardBackImage.style.display = "block";
+                        cardBackImage.onerror = () => {
+                            cardBackImage.style.display = "none";
+                        };
+                    } else {
+                        cardBackImage.src = "";
+                        cardBackImage.style.display = "none";
+                    }
+                };
+
+                const showNextCard = () => {
                     if (currentReviewWords.length === 0) {
                         cardFrontText.textContent = "No Words";
                         cardBackWord.textContent = "This category is empty";
                         cardBackDefinition.textContent =
                             "Please add some words to this category in the 'Manage Words' section.";
+                        cardBackImage.style.display = "none";
                         return;
                     }
-                    const randomIndex = Math.floor(
-                        Math.random() * currentReviewWords.length
-                    );
-                    const currentWord = currentReviewWords[randomIndex];
+
+                    flashcard.classList.add("slide-out-left");
 
                     setTimeout(() => {
-                        cardFrontText.textContent = currentWord.word;
-                        cardBackWord.textContent = currentWord.word;
-                        cardBackDefinition.textContent = currentWord.definition;
-                    }, 150);
+                        if (currentWord) {
+                            reviewHistory.push(currentWord);
+                            if (reviewHistory.length > 3) {
+                                reviewHistory.shift();
+                            }
+                        }
+
+                        const randomIndex = Math.floor(
+                            Math.random() * currentReviewWords.length
+                        );
+                        currentWord = currentReviewWords[randomIndex];
+                        updateCard(currentWord);
+
+                        flashcard.classList.remove("slide-out-left");
+                        flashcard.classList.add("slide-in-right");
+
+                        prevWordBtn.disabled = reviewHistory.length === 0;
+
+                        setTimeout(() => {
+                            flashcard.classList.remove("slide-in-right");
+                        }, 500);
+                    }, 500);
+                };
+
+                const showPreviousCard = () => {
+                    if (reviewHistory.length > 0) {
+                        flashcard.classList.add("slide-out-right");
+
+                        setTimeout(() => {
+                            currentWord = reviewHistory.pop();
+                            updateCard(currentWord);
+
+                            flashcard.classList.remove("slide-out-right");
+                            flashcard.classList.add("slide-in-left");
+
+                            setTimeout(() => {
+                                flashcard.classList.remove("slide-in-left");
+                            }, 500);
+                        }, 500);
+                    }
+                    prevWordBtn.disabled = reviewHistory.length === 0;
                 };
 
                 // --- EVENT HANDLERS ---
@@ -922,6 +1248,7 @@
                     const categoryId = categorySelect.value;
                     const wordText = wordInput.value.trim();
                     const definitionText = definitionInput.value.trim();
+                    const imageUrl = imageUrlInput.value.trim();
 
                     if (
                         !categoryId ||
@@ -941,24 +1268,47 @@
                         categoryId: categoryId,
                         word: wordText,
                         definition: definitionText,
+                        image: imageUrl,
                         createdAt: new Date().toISOString(),
                     };
                     data.words.unshift(newWord);
                     saveData();
                     addWordForm.reset();
-                    // Keep category selected, focus on word input
                     categorySelect.value = categoryId;
                     wordInput.focus();
                 };
 
                 const handleListClick = (event) => {
                     const deleteBtn = event.target.closest(".delete-btn");
-                    if (deleteBtn) {
+                    const editBtn = event.target.closest(".edit-btn");
+                    // *** START NEW CODE ***
+                    const deleteCategoryBtn = event.target.closest(
+                        ".delete-category-btn"
+                    );
+
+                    if (deleteCategoryBtn) {
+                        const categoryId =
+                            deleteCategoryBtn.getAttribute("data-category-id");
+                        if (
+                            confirm(
+                                "Are you sure you want to delete this empty category?"
+                            )
+                        ) {
+                            data.categories = data.categories.filter(
+                                (cat) => cat.id !== categoryId
+                            );
+                            saveData();
+                        }
+                    } else if (deleteBtn) {
+                        // *** END NEW CODE ***
                         const wordId = deleteBtn.getAttribute("data-word-id");
                         data.words = data.words.filter(
                             (word) => word.id !== wordId
                         );
                         saveData();
+                    } else if (editBtn) {
+                        const wordId = editBtn.getAttribute("data-word-id");
+                        openEditModal(wordId);
                     }
                 };
 
@@ -1006,6 +1356,9 @@
                 const handleDeckClick = (event) => {
                     const deck = event.target.closest(".category-deck");
                     if (deck) {
+                        reviewHistory = [];
+                        currentWord = null;
+
                         const categoryId = deck.dataset.categoryId;
                         const category = data.categories.find(
                             (c) => c.id === categoryId
@@ -1017,6 +1370,48 @@
                         flashcardCategoryTitle.textContent = `Reviewing: ${category.name}`;
                         showView(flashcardView);
                         showNextCard();
+                    }
+                };
+
+                // --- NEW: EDIT MODAL FUNCTIONS ---
+                const openEditModal = (wordId) => {
+                    const wordToEdit = data.words.find(
+                        (word) => word.id === wordId
+                    );
+                    if (wordToEdit) {
+                        editWordId.value = wordToEdit.id;
+                        editWordInput.value = wordToEdit.word;
+                        editDefinitionInput.value = wordToEdit.definition;
+                        editImageUrlInput.value = wordToEdit.image || "";
+                        editWordModal.classList.add("active");
+                    }
+                };
+
+                const closeEditModal = () => {
+                    editWordModal.classList.remove("active");
+                };
+
+                const handleUpdateWord = (event) => {
+                    event.preventDefault();
+                    const wordId = editWordId.value;
+                    const updatedWord = editWordInput.value.trim();
+                    const updatedDefinition = editDefinitionInput.value.trim();
+                    const updatedImageUrl = editImageUrlInput.value.trim();
+
+                    if (updatedWord === "" || updatedDefinition === "") {
+                        alert("Word and definition cannot be empty.");
+                        return;
+                    }
+
+                    const wordIndex = data.words.findIndex(
+                        (word) => word.id === wordId
+                    );
+                    if (wordIndex > -1) {
+                        data.words[wordIndex].word = updatedWord;
+                        data.words[wordIndex].definition = updatedDefinition;
+                        data.words[wordIndex].image = updatedImageUrl;
+                        saveData();
+                        closeEditModal();
                     }
                 };
 
@@ -1045,6 +1440,11 @@
                     showNextCard();
                 });
 
+                prevWordBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    showPreviousCard();
+                });
+
                 addCategoryForm.addEventListener("submit", handleAddCategory);
                 addWordForm.addEventListener("submit", handleAddWord);
                 categoryListContainer.addEventListener(
@@ -1053,6 +1453,15 @@
                 );
                 exportBtn.addEventListener("click", handleExport);
                 importFileInput.addEventListener("change", handleImport);
+
+                // --- NEW: EDIT MODAL EVENT LISTENERS ---
+                editWordForm.addEventListener("submit", handleUpdateWord);
+                cancelEditBtn.addEventListener("click", closeEditModal);
+                editWordModal.addEventListener("click", (event) => {
+                    if (event.target === editWordModal) {
+                        closeEditModal();
+                    }
+                });
 
                 // --- INITIALIZATION ---
                 loadData();
