@@ -440,7 +440,12 @@
                 margin: 0;
                 font-size: 1.4em;
             }
-
+            .category-header .review-star-svg {
+                width: 20px;
+                height: 20px;
+                margin-right: 10px;
+                fill: var(--accent-color-1);
+            }
             .word-list {
                 list-style-type: none;
                 padding: 0;
@@ -568,7 +573,6 @@
                 margin-top: 25px;
             }
 
-            /* --- START EDIT: Styles for the image preview in the edit modal --- */
             #edit-image-preview-container {
                 margin-top: 15px;
             }
@@ -579,7 +583,32 @@
                 object-fit: cover;
                 border: 2px solid var(--border-color);
             }
-            /* --- END EDIT --- */
+
+            #csv-editor-container {
+                margin-top: 40px;
+            }
+            #csv-textarea {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid var(--border-color);
+                border-radius: 8px;
+                font-size: 0.95rem;
+                font-family: Consolas, "Courier New", monospace;
+                resize: vertical;
+                box-sizing: border-box;
+                background-color: #fffaf0;
+                line-height: 1.5;
+            }
+            #csv-textarea:focus {
+                outline: none;
+                border-color: var(--accent-color-1);
+            }
+            .csv-editor-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 15px;
+                margin-top: 20px;
+            }
         </style>
     </head>
     <body>
@@ -617,6 +646,7 @@
                     <p>Choose a category to review, or manage your words.</p>
                 </div>
                 <div class="deck-container" id="deck-container">
+                    <!-- Review Words Deck will be inserted here by JavaScript -->
                     <article class="deck-card" id="manage-words-deck">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -688,6 +718,23 @@
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
                         <span>Previous</span>
+                    </button>
+                    <button class="btn" id="send-to-review-btn">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <title>Send to review icon</title>
+                            <polygon
+                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                            ></polygon>
+                        </svg>
+                        <span>Send to Review</span>
                     </button>
                     <button class="btn btn-primary" id="next-word-btn">
                         <span>Next Word</span>
@@ -781,6 +828,7 @@
                         <button id="export-btn" class="btn">
                             Export to CSV
                         </button>
+                        <button id="show-csv-btn" class="btn">Show CSV</button>
                         <label for="import-file-input" class="btn"
                             >Import from CSV</label
                         >
@@ -790,6 +838,25 @@
                             accept=".csv"
                         />
                     </div>
+                    <div id="csv-editor-container" class="hidden">
+                        <hr class="section-divider" />
+                        <h2>Edit Raw CSV Data</h2>
+                        <div class="form-group">
+                            <label for="csv-textarea">CSV Content</label>
+                            <textarea id="csv-textarea" rows="15"></textarea>
+                        </div>
+                        <div class="csv-editor-actions">
+                            <button id="discard-csv-changes-btn" class="btn">
+                                Discard Changes
+                            </button>
+                            <button
+                                id="save-csv-changes-btn"
+                                class="btn btn-primary"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="navigation-controls">
                     <button class="btn" id="back-to-dashboard-manage">
@@ -798,7 +865,6 @@
                 </div>
             </section>
 
-            <!-- 4. EDIT WORD MODAL (NEW) -->
             <div id="edit-word-modal" class="modal-overlay">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -825,7 +891,6 @@
                             >
                             <input type="url" id="edit-image-url-input" />
                         </div>
-                        <!-- --- START EDIT: Added image preview container --- -->
                         <div id="edit-image-preview-container" class="hidden">
                             <img
                                 id="edit-image-preview"
@@ -833,7 +898,6 @@
                                 alt="Image Preview"
                             />
                         </div>
-                        <!-- --- END EDIT --- -->
                         <div class="modal-actions">
                             <button
                                 type="button"
@@ -859,6 +923,7 @@
             document.addEventListener("DOMContentLoaded", () => {
                 // --- STATE AND CONSTANTS ---
                 const STORAGE_KEY = "tresCozyFlashcardsData";
+                const REVIEW_CATEGORY_NAME = "Review Words"; // Centralized name for the special category
 
                 let data = {
                     categories: [],
@@ -892,6 +957,8 @@
                 );
                 const nextWordBtn = document.getElementById("next-word-btn");
                 const prevWordBtn = document.getElementById("prev-word-btn");
+                const sendToReviewBtn =
+                    document.getElementById("send-to-review-btn");
                 const cardBackImage =
                     document.getElementById("card-back-image");
 
@@ -922,7 +989,6 @@
                 const importFileInput =
                     document.getElementById("import-file-input");
 
-                // --- NEW: EDIT MODAL REFERENCES ---
                 const editWordModal =
                     document.getElementById("edit-word-modal");
                 const editWordForm = document.getElementById("edit-word-form");
@@ -937,13 +1003,23 @@
                 );
                 const cancelEditBtn =
                     document.getElementById("cancel-edit-btn");
-                // --- START EDIT: Added image preview references ---
                 const editImagePreviewContainer = document.getElementById(
                     "edit-image-preview-container"
                 );
                 const editImagePreview =
                     document.getElementById("edit-image-preview");
-                // --- END EDIT ---
+
+                const showCsvBtn = document.getElementById("show-csv-btn");
+                const csvEditorContainer = document.getElementById(
+                    "csv-editor-container"
+                );
+                const csvTextarea = document.getElementById("csv-textarea");
+                const saveCsvChangesBtn = document.getElementById(
+                    "save-csv-changes-btn"
+                );
+                const discardCsvChangesBtn = document.getElementById(
+                    "discard-csv-changes-btn"
+                );
 
                 // --- VIEW MANAGEMENT ---
                 const showView = (viewToShow) => {
@@ -968,17 +1044,33 @@
 
                 function dataToCsv() {
                     const header = "category,word,definition,image";
-                    const lines = data.words.map((word) => {
-                        const category = data.categories.find(
-                            (cat) => cat.id === word.categoryId
-                        );
-                        const categoryName = category ? category.name : "";
-                        return `${escapeCsvField(
-                            categoryName
-                        )},${escapeCsvField(word.word)},${escapeCsvField(
-                            word.definition
-                        )},${escapeCsvField(word.image)}`;
+
+                    // Ensure "Review Words" category comes first if it exists
+                    const sortedCategories = [...data.categories].sort(
+                        (a, b) => {
+                            if (a.name === REVIEW_CATEGORY_NAME) return -1;
+                            if (b.name === REVIEW_CATEGORY_NAME) return 1;
+                            return 0; // Maintain original order for others
+                        }
+                    );
+
+                    let lines = [];
+                    sortedCategories.forEach((category) => {
+                        data.words
+                            .filter((word) => word.categoryId === category.id)
+                            .forEach((word) => {
+                                lines.push(
+                                    `${escapeCsvField(
+                                        category.name
+                                    )},${escapeCsvField(
+                                        word.word
+                                    )},${escapeCsvField(
+                                        word.definition
+                                    )},${escapeCsvField(word.image)}`
+                                );
+                            });
                     });
+
                     return [header, ...lines].join("\n");
                 }
 
@@ -997,9 +1089,6 @@
                         headerLine.includes("category") &&
                         headerLine.includes("word") &&
                         headerLine.includes("definition");
-
-                    const hasImageColumn =
-                        hasHeader && headerLine.includes("image");
 
                     if (hasHeader) {
                         lines.shift(); // Remove header line
@@ -1065,11 +1154,49 @@
                         count === 1 ? "word" : "words"
                     }`;
 
-                    const categoryDecks =
-                        deckContainer.querySelectorAll(".category-deck");
-                    categoryDecks.forEach((deck) => deck.remove());
+                    // Clear existing decks
+                    const allDecks = deckContainer.querySelectorAll(
+                        ".category-deck, .review-deck"
+                    );
+                    allDecks.forEach((deck) => deck.remove());
+
+                    let reviewCategory = null;
+                    const otherCategories = [];
 
                     data.categories.forEach((category) => {
+                        if (category.name === REVIEW_CATEGORY_NAME) {
+                            reviewCategory = category;
+                        } else {
+                            otherCategories.push(category);
+                        }
+                    });
+
+                    // Render Review Words deck first if it exists
+                    if (reviewCategory) {
+                        const wordsInCategory = data.words.filter(
+                            (w) => w.categoryId === reviewCategory.id
+                        );
+                        const wordCount = wordsInCategory.length;
+                        if (wordCount > 0) {
+                            const deck = document.createElement("article");
+                            deck.className = "deck-card review-deck"; // Special class
+                            deck.dataset.categoryId = reviewCategory.id;
+                            deck.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--accent-color-1)" stroke="var(--accent-color-1)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                    <title>Review Words Deck</title>
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                <h3>${reviewCategory.name}</h3>
+                                <p>${wordCount} ${
+                                wordCount === 1 ? "word" : "words"
+                            }</p>
+                            `;
+                            deckContainer.insertBefore(deck, manageWordsDeck);
+                        }
+                    }
+
+                    // Render other category decks
+                    otherCategories.forEach((category) => {
                         const wordsInCategory = data.words.filter(
                             (w) => w.categoryId === category.id
                         );
@@ -1102,7 +1229,21 @@
                         option.selected = true;
                         categorySelect.appendChild(option);
                     } else {
-                        data.categories.forEach((cat) => {
+                        // Separate and sort categories for the dropdown
+                        const reviewCat = data.categories.find(
+                            (c) => c.name === REVIEW_CATEGORY_NAME
+                        );
+                        const otherCats = data.categories.filter(
+                            (c) => c.name !== REVIEW_CATEGORY_NAME
+                        );
+
+                        if (reviewCat) {
+                            const option = document.createElement("option");
+                            option.value = reviewCat.id;
+                            option.textContent = reviewCat.name;
+                            categorySelect.appendChild(option);
+                        }
+                        otherCats.forEach((cat) => {
                             const option = document.createElement("option");
                             option.value = cat.id;
                             option.textContent = cat.name;
@@ -1116,21 +1257,32 @@
                         return;
                     }
 
-                    data.categories.forEach((category) => {
+                    // Separate and sort categories for the list view
+                    const reviewCatList = data.categories.find(
+                        (c) => c.name === REVIEW_CATEGORY_NAME
+                    );
+                    const otherCatsList = data.categories.filter(
+                        (c) => c.name !== REVIEW_CATEGORY_NAME
+                    );
+                    const sortedCategoriesForList = reviewCatList
+                        ? [reviewCatList, ...otherCatsList]
+                        : otherCatsList;
+
+                    sortedCategoriesForList.forEach((category) => {
                         const wordsInCategory = data.words.filter(
                             (word) => word.categoryId === category.id
                         );
                         const categoryItem = document.createElement("div");
                         categoryItem.className = "category-item";
+                        const isReviewCategory =
+                            category.name === REVIEW_CATEGORY_NAME;
 
                         let wordListHtml = '<ul class="word-list">';
                         if (wordsInCategory.length > 0) {
                             wordsInCategory.forEach((word) => {
-                                // --- START EDIT: Show image in manage words list ---
                                 const imageHtml = word.image
                                     ? `<img src="${word.image}" alt="${word.word}" class="word-list-image">`
                                     : "";
-                                // --- END EDIT ---
                                 wordListHtml += `
                                     <li>
                                         <div class="word-content">
@@ -1139,12 +1291,8 @@
                                             ${imageHtml}
                                         </div>
                                         <div class="word-actions">
-                                            <button class="edit-btn" data-word-id="${word.id}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Edit word</title><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                            </button>
-                                            <button class="delete-btn" data-word-id="${word.id}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete word</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                            </button>
+                                            <button class="edit-btn" data-word-id="${word.id}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Edit word</title><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                            <button class="delete-btn" data-word-id="${word.id}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete word</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                                         </div>
                                     </li>
                                 `;
@@ -1159,13 +1307,23 @@
                                 ? `
                             <button class="delete-btn delete-category-btn" data-category-id="${category.id}" title="Delete this empty category">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Delete category</title><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                        `
+                            </button>`
                                 : "";
+
+                        const reviewStarIcon = isReviewCategory
+                            ? `
+                            <svg class="review-star-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <title>Review Category</title>
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>`
+                            : "";
 
                         categoryItem.innerHTML = `
                              <div class="category-header">
-                                <h3>${category.name}</h3>
+                                <div style="display: flex; align-items: center;">
+                                    ${reviewStarIcon}
+                                    <h3>${category.name}</h3>
+                                </div>
                                 ${deleteButtonHtml}
                             </div>
                             ${wordListHtml}
@@ -1184,6 +1342,8 @@
                     cardFrontText.textContent = word.word;
                     cardBackWord.textContent = word.word;
                     cardBackDefinition.textContent = word.definition;
+                    sendToReviewBtn.disabled =
+                        word.categoryName === REVIEW_CATEGORY_NAME;
 
                     if (word.image && word.image.trim() !== "") {
                         cardBackImage.src = word.image;
@@ -1204,6 +1364,7 @@
                         cardBackDefinition.textContent =
                             "Please add some words to this category in the 'Manage Words' section.";
                         cardBackImage.style.display = "none";
+                        sendToReviewBtn.disabled = true; // Disable if no words
                         return;
                     }
 
@@ -1214,6 +1375,32 @@
                             reviewHistory.push(currentWord);
                             if (reviewHistory.length > 3) {
                                 reviewHistory.shift();
+                            }
+                        }
+
+                        // Remove the current word from the pool to avoid immediate repeats
+                        const currentWordIndex = currentReviewWords.findIndex(
+                            (w) =>
+                                w.id === (currentWord ? currentWord.id : null)
+                        );
+                        if (currentWordIndex > -1) {
+                            currentReviewWords.splice(currentWordIndex, 1);
+                        }
+
+                        // If all words have been seen, reset the pool
+                        if (currentReviewWords.length === 0) {
+                            const originalCategory = data.categories.find(
+                                (c) =>
+                                    c.name ===
+                                    flashcardCategoryTitle.textContent.replace(
+                                        "Reviewing: ",
+                                        ""
+                                    )
+                            );
+                            if (originalCategory) {
+                                currentReviewWords = data.words.filter(
+                                    (w) => w.categoryId === originalCategory.id
+                                );
                             }
                         }
 
@@ -1239,6 +1426,16 @@
                         flashcard.classList.add("slide-out-right");
 
                         setTimeout(() => {
+                            if (currentWord) {
+                                // Add current word back to the review pool if it's not already there
+                                if (
+                                    !currentReviewWords.find(
+                                        (w) => w.id === currentWord.id
+                                    )
+                                ) {
+                                    currentReviewWords.push(currentWord);
+                                }
+                            }
                             currentWord = reviewHistory.pop();
                             updateCard(currentWord);
 
@@ -1254,6 +1451,40 @@
                 };
 
                 // --- EVENT HANDLERS ---
+                const handleSendToReview = () => {
+                    if (!currentWord) return;
+
+                    let reviewCategory = data.categories.find(
+                        (c) => c.name === REVIEW_CATEGORY_NAME
+                    );
+
+                    // If "Review Words" category doesn't exist, create it
+                    if (!reviewCategory) {
+                        reviewCategory = {
+                            id: crypto.randomUUID(),
+                            name: REVIEW_CATEGORY_NAME,
+                        };
+                        // Add it to the beginning of the categories array to ensure it's first in the CSV
+                        data.categories.unshift(reviewCategory);
+                    }
+
+                    // Find the word in the main data array and update its categoryId
+                    const wordIndex = data.words.findIndex(
+                        (w) => w.id === currentWord.id
+                    );
+                    if (wordIndex > -1) {
+                        data.words[wordIndex].categoryId = reviewCategory.id;
+                        saveData();
+                    }
+
+                    // Visually update button and then move to next card
+                    sendToReviewBtn.disabled = true;
+                    alert(
+                        `"${currentWord.word}" has been sent to the Review Words deck.`
+                    );
+                    showNextCard();
+                };
+
                 const handleAddCategory = (event) => {
                     event.preventDefault();
                     const categoryName = categoryInput.value.trim();
@@ -1389,7 +1620,9 @@
                 };
 
                 const handleDeckClick = (event) => {
-                    const deck = event.target.closest(".category-deck");
+                    const deck = event.target.closest(
+                        ".category-deck, .review-deck"
+                    );
                     if (deck) {
                         reviewHistory = [];
                         currentWord = null;
@@ -1408,7 +1641,6 @@
                     }
                 };
 
-                // --- NEW: EDIT MODAL FUNCTIONS ---
                 const openEditModal = (wordId) => {
                     const wordToEdit = data.words.find(
                         (word) => word.id === wordId
@@ -1418,7 +1650,6 @@
                         editWordInput.value = wordToEdit.word;
                         editDefinitionInput.value = wordToEdit.definition;
                         editImageUrlInput.value = wordToEdit.image || "";
-                        // --- START EDIT: Show/hide image preview in edit modal ---
                         if (wordToEdit.image) {
                             editImagePreview.src = wordToEdit.image;
                             editImagePreviewContainer.classList.remove(
@@ -1427,7 +1658,6 @@
                         } else {
                             editImagePreviewContainer.classList.add("hidden");
                         }
-                        // --- END EDIT ---
                         editWordModal.classList.add("active");
                     }
                 };
@@ -1462,11 +1692,9 @@
 
                 // --- NAVIGATION EVENT LISTENERS ---
                 deckContainer.addEventListener("click", handleDeckClick);
-
-                manageWordsDeck.addEventListener("click", () => {
-                    showView(manageView);
-                });
-
+                manageWordsDeck.addEventListener("click", () =>
+                    showView(manageView)
+                );
                 [backToDashboardFlashcard, backToDashboardManage].forEach(
                     (btn) => {
                         btn.addEventListener("click", () =>
@@ -1476,20 +1704,18 @@
                 );
 
                 // --- FUNCTIONAL EVENT LISTENERS ---
-                flashcard.addEventListener("click", () => {
-                    flashcard.classList.toggle("is-flipped");
-                });
-
+                flashcard.addEventListener("click", () =>
+                    flashcard.classList.toggle("is-flipped")
+                );
                 nextWordBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     showNextCard();
                 });
-
                 prevWordBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     showPreviousCard();
                 });
-
+                sendToReviewBtn.addEventListener("click", handleSendToReview); // New event listener
                 addCategoryForm.addEventListener("submit", handleAddCategory);
                 addWordForm.addEventListener("submit", handleAddWord);
                 categoryListContainer.addEventListener(
@@ -1498,17 +1724,11 @@
                 );
                 exportBtn.addEventListener("click", handleExport);
                 importFileInput.addEventListener("change", handleImport);
-
-                // --- NEW: EDIT MODAL EVENT LISTENERS ---
                 editWordForm.addEventListener("submit", handleUpdateWord);
                 cancelEditBtn.addEventListener("click", closeEditModal);
                 editWordModal.addEventListener("click", (event) => {
-                    if (event.target === editWordModal) {
-                        closeEditModal();
-                    }
+                    if (event.target === editWordModal) closeEditModal();
                 });
-
-                // --- START EDIT: Add event listener to update image preview in real-time ---
                 editImageUrlInput.addEventListener("input", () => {
                     const url = editImageUrlInput.value.trim();
                     if (url) {
@@ -1518,7 +1738,43 @@
                         editImagePreviewContainer.classList.add("hidden");
                     }
                 });
-                // --- END EDIT ---
+
+                showCsvBtn.addEventListener("click", () => {
+                    csvTextarea.value = dataToCsv();
+                    csvEditorContainer.classList.remove("hidden");
+                });
+                discardCsvChangesBtn.addEventListener("click", () => {
+                    csvTextarea.value = "";
+                    csvEditorContainer.classList.add("hidden");
+                });
+                saveCsvChangesBtn.addEventListener("click", () => {
+                    if (
+                        !confirm(
+                            "Are you sure? This will overwrite your current data."
+                        )
+                    )
+                        return;
+                    try {
+                        const newData = csvToData(csvTextarea.value);
+                        if (
+                            !newData ||
+                            !Array.isArray(newData.words) ||
+                            !Array.isArray(newData.categories)
+                        ) {
+                            throw new Error("Invalid CSV structure.");
+                        }
+                        data = newData;
+                        saveData();
+                        csvEditorContainer.classList.add("hidden");
+                        alert(
+                            `Successfully updated: ${data.words.length} words in ${data.categories.length} categories.`
+                        );
+                    } catch (error) {
+                        alert(
+                            `Failed to save. Check CSV format.\nError: ${error.message}`
+                        );
+                    }
+                });
 
                 // --- INITIALIZATION ---
                 loadData();
