@@ -9,14 +9,17 @@
             href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Cabin:wght@400;700&display=swap"
             rel="stylesheet"
         />
+
         <style>
             /* --- GLOBAL STYLES & VARIABLES --- */
             :root {
                 --bg-color: #fdfaf6; /* Creamy white */
                 --header-bg: #fffaf0; /* Slightly warmer white */
-                --card-bg: #fffaf0; /* Warm card background */
+                --card-bg: #ffffff; /* Card background */
                 --card-back-bg: #fdf6eb; /* Slightly different back color */
+                --input-bg: #ffffff; /* Form input background */
                 --text-color: #5d5d5d; /* Soft taupe */
+                --text-color-muted: #888; /* Lighter text for secondary info */
                 --heading-color: #4a4a4a; /* Darker accent for headings */
                 --border-color: #e0ddd7; /* Muted accent border */
                 --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -26,6 +29,26 @@
                 --accent-color-2: #8cb3c0; /* Travel */
                 --danger-color: #d9534f; /* Muted red */
                 --success-color: #5cb85c; /* Muted green */
+                --hover-bg-danger: #fceae9;
+                --hover-bg-edit: #e3eef2;
+            }
+
+            .dark-mode:root {
+                --bg-color: #2c2c2c;
+                --header-bg: #3a3a3a;
+                --card-bg: #3a3a3a;
+                --card-back-bg: #4a4a4a;
+                --input-bg: #4a4a4a;
+                --text-color: #e0e0e0;
+                --text-color-muted: #a0a0a0;
+                --heading-color: #ffffff;
+                --border-color: #5d5d5d;
+                --accent-color-1: #e0c09a;
+                --accent-color-2: #a8d8e0;
+                --danger-color: #e08a87;
+                --success-color: #8ce08c;
+                --hover-bg-danger: rgba(224, 138, 135, 0.2);
+                --hover-bg-edit: rgba(168, 216, 224, 0.2);
             }
 
             body {
@@ -34,6 +57,7 @@
                 color: var(--text-color);
                 margin: 0;
                 line-height: 1.6;
+                transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
             }
 
             h1,
@@ -60,13 +84,22 @@
                 padding: 25px 20px;
                 background-color: var(--header-bg);
                 border-bottom: 1px solid var(--border-color);
+                transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
+            }
+            header {
+                position: relative;
             }
             footer {
                 border-bottom: none;
                 border-top: 1px solid var(--border-color);
                 margin-top: 50px;
-                color: #8b8b8b;
+                color: var(--text-color-muted);
                 font-size: 0.9em;
+            }
+            .logo svg text {
+                fill: var(
+                    --heading-color
+                ); /* Use variable for logo text color */
             }
             .logo svg {
                 vertical-align: middle;
@@ -119,6 +152,17 @@
                 stroke: var(--success-color);
             }
 
+            .theme-toggle-btn {
+                position: absolute;
+                top: 50%;
+                right: 20px;
+                transform: translateY(-50%);
+                padding: 8px;
+                border-radius: 50%;
+                width: 44px;
+                height: 44px;
+            }
+
             /* --- DASHBOARD VIEW --- */
             .dashboard-header {
                 text-align: center;
@@ -130,7 +174,7 @@
             }
             .dashboard-header p {
                 font-size: 1.1em;
-                color: #7b7b7b;
+                color: var(--text-color-muted);
             }
             .deck-container {
                 display: flex;
@@ -144,7 +188,7 @@
                 width: 220px;
                 padding: 25px;
                 text-align: center;
-                background-color: #ffffff;
+                background-color: var(--card-bg);
                 box-shadow: var(--shadow-medium);
                 cursor: pointer;
                 transition: transform 0.2s ease-in-out,
@@ -166,7 +210,7 @@
             .deck-card p {
                 margin: 0;
                 font-family: "Cabin", sans-serif;
-                color: #888;
+                color: var(--text-color-muted);
             }
 
             /* --- FLASHCARD VIEW --- */
@@ -207,7 +251,7 @@
                 box-shadow: var(--shadow-medium);
                 padding: 20px;
                 box-sizing: border-box;
-                overflow: hidden; /* NEW: Prevents large images from breaking card layout */
+                overflow: hidden;
             }
             .card-back {
                 transform: rotateY(180deg);
@@ -225,6 +269,7 @@
                 font-size: 1.2em;
                 color: var(--text-color);
             }
+
             /* --- ANIMATIONS FOR NEXT/PREVIOUS WORD --- */
             @keyframes slideOutLeft {
                 from {
@@ -246,7 +291,6 @@
                     opacity: 1;
                 }
             }
-            /* NEW: Animations for the "Previous" button */
             @keyframes slideOutRight {
                 from {
                     transform: translateX(0);
@@ -274,7 +318,6 @@
             .slide-in-right {
                 animation: slideInRight 0.5s forwards;
             }
-            /* NEW: Classes for the "Previous" button animation */
             .slide-out-right {
                 animation: slideOutRight 0.5s forwards;
             }
@@ -297,7 +340,7 @@
             .manage-view-container {
                 max-width: 800px;
                 margin: auto;
-                background-color: white;
+                background-color: var(--card-bg);
                 padding: 30px 40px;
                 border-radius: 12px;
                 box-shadow: var(--shadow-medium);
@@ -339,7 +382,7 @@
                 margin-bottom: 8px;
                 font-weight: bold;
                 font-family: "Cabin", sans-serif;
-                color: #555;
+                color: var(--text-color);
             }
             #word-input,
             #definition-input,
@@ -355,7 +398,8 @@
                 font-size: 1rem;
                 font-family: "Vollkorn", serif;
                 transition: border-color 0.2s;
-                background-color: white;
+                background-color: var(--input-bg);
+                color: var(--text-color); /* Ensure input text is visible */
                 box-sizing: border-box;
                 width: 100%;
             }
@@ -424,7 +468,7 @@
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
                 margin-bottom: 25px;
-                background-color: #fdfdfb;
+                background-color: var(--card-back-bg);
             }
             .category-header {
                 padding: 15px 20px;
@@ -485,10 +529,10 @@
                 margin: 5px 0 0 0;
                 word-break: break-word;
             }
-            /* NEW: Style for the image URL in the manage list */
+
             .word-content .image-url-display {
                 font-size: 0.85em;
-                color: #999;
+                color: var(--text-color-muted);
                 margin-top: 8px;
                 font-style: italic;
                 white-space: nowrap;
@@ -497,7 +541,6 @@
                 max-width: 400px;
             }
 
-            /* --- START EDIT: Styles for the image in the manage words list --- */
             .word-list-image {
                 max-width: 100px;
                 max-height: 60px;
@@ -505,7 +548,6 @@
                 margin-top: 10px;
                 object-fit: cover;
             }
-            /* --- END EDIT --- */
 
             .delete-btn,
             .edit-btn {
@@ -518,17 +560,18 @@
                 transition: background-color 0.2s;
             }
             .delete-btn:hover {
-                background-color: #fceae9;
+                background-color: var(--hover-bg-danger);
             }
             .delete-btn svg {
                 stroke: var(--danger-color);
             }
             .edit-btn:hover {
-                background-color: #e3eef2;
+                background-color: var(--hover-bg-edit);
             }
             .edit-btn svg {
                 stroke: var(--accent-color-2);
             }
+
             /* MODAL STYLES */
             .modal-overlay {
                 position: fixed;
@@ -596,7 +639,8 @@
                 font-family: Consolas, "Courier New", monospace;
                 resize: vertical;
                 box-sizing: border-box;
-                background-color: #fffaf0;
+                background-color: var(--card-back-bg);
+                color: var(--text-color);
                 line-height: 1.5;
             }
             #csv-textarea:focus {
@@ -626,7 +670,6 @@
                         y="35"
                         font-family="Libre Baskerville, serif"
                         font-size="30"
-                        fill="#4a4a4a"
                     >
                         Très Cozy
                     </text>
@@ -636,6 +679,22 @@
                     />
                 </svg>
             </div>
+            <button class="btn theme-toggle-btn" id="theme-toggle">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <title>Toggle Theme</title>
+                    <path
+                        d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                    ></path>
+                </svg>
+            </button>
         </header>
 
         <main>
@@ -916,7 +975,7 @@
         </main>
 
         <footer>
-            <p>Learning, gently.</p>
+            <p>from Yohannes, with love ❤️</p>
         </footer>
 
         <script>
@@ -938,6 +997,8 @@
                 const dashboardView = document.getElementById("dashboard-view");
                 const flashcardView = document.getElementById("flashcard-view");
                 const manageView = document.getElementById("manage-view");
+                const themeToggleButton =
+                    document.getElementById("theme-toggle");
 
                 const deckContainer = document.getElementById("deck-container");
                 const manageWordsDeck =
@@ -1028,6 +1089,12 @@
                     );
                     viewToShow.classList.remove("hidden");
                 };
+
+                // --- THEME TOGGLE ---
+                const toggleTheme = () => {
+                    document.documentElement.classList.toggle("dark-mode");
+                };
+                themeToggleButton.addEventListener("click", toggleTheme);
 
                 // --- CSV HELPER FUNCTIONS ---
                 function escapeCsvField(field) {
