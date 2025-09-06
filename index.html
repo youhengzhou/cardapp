@@ -492,6 +492,16 @@
                 max-width: 400px;
             }
 
+            /* --- START EDIT: Styles for the image in the manage words list --- */
+            .word-list-image {
+                max-width: 100px;
+                max-height: 60px;
+                border-radius: 4px;
+                margin-top: 10px;
+                object-fit: cover;
+            }
+            /* --- END EDIT --- */
+
             .delete-btn,
             .edit-btn {
                 background: none;
@@ -557,6 +567,19 @@
                 gap: 15px;
                 margin-top: 25px;
             }
+
+            /* --- START EDIT: Styles for the image preview in the edit modal --- */
+            #edit-image-preview-container {
+                margin-top: 15px;
+            }
+            #edit-image-preview {
+                max-width: 100%;
+                max-height: 150px;
+                border-radius: 8px;
+                object-fit: cover;
+                border: 2px solid var(--border-color);
+            }
+            /* --- END EDIT --- */
         </style>
     </head>
     <body>
@@ -631,23 +654,21 @@
                             <h2 id="card-front-text"></h2>
                         </div>
                         <div class="card-back">
-                            <div>
-                                <img
-                                    id="card-back-image"
-                                    src=""
-                                    alt="Flashcard Image"
-                                    style="
-                                        display: none;
-                                        max-width: 90%;
-                                        max-height: 120px;
-                                        border-radius: 8px;
-                                        margin-bottom: 15px;
-                                        object-fit: cover;
-                                    "
-                                />
-                                <h2 id="card-back-word"></h2>
-                                <p id="card-back-definition"></p>
-                            </div>
+                            <img
+                                id="card-back-image"
+                                src=""
+                                alt="Flashcard Image"
+                                style="
+                                    display: none;
+                                    max-width: 90%;
+                                    max-height: 120px;
+                                    border-radius: 8px;
+                                    margin-bottom: 15px;
+                                    object-fit: cover;
+                                "
+                            />
+                            <h2 id="card-back-word"></h2>
+                            <p id="card-back-definition"></p>
                         </div>
                     </div>
                 </div>
@@ -804,6 +825,15 @@
                             >
                             <input type="url" id="edit-image-url-input" />
                         </div>
+                        <!-- --- START EDIT: Added image preview container --- -->
+                        <div id="edit-image-preview-container" class="hidden">
+                            <img
+                                id="edit-image-preview"
+                                src=""
+                                alt="Image Preview"
+                            />
+                        </div>
+                        <!-- --- END EDIT --- -->
                         <div class="modal-actions">
                             <button
                                 type="button"
@@ -907,6 +937,13 @@
                 );
                 const cancelEditBtn =
                     document.getElementById("cancel-edit-btn");
+                // --- START EDIT: Added image preview references ---
+                const editImagePreviewContainer = document.getElementById(
+                    "edit-image-preview-container"
+                );
+                const editImagePreview =
+                    document.getElementById("edit-image-preview");
+                // --- END EDIT ---
 
                 // --- VIEW MANAGEMENT ---
                 const showView = (viewToShow) => {
@@ -1089,15 +1126,17 @@
                         let wordListHtml = '<ul class="word-list">';
                         if (wordsInCategory.length > 0) {
                             wordsInCategory.forEach((word) => {
-                                const imageUrlDisplay = word.image
-                                    ? `<div class="image-url-display">Image: ${word.image}</div>`
+                                // --- START EDIT: Show image in manage words list ---
+                                const imageHtml = word.image
+                                    ? `<img src="${word.image}" alt="${word.word}" class="word-list-image">`
                                     : "";
+                                // --- END EDIT ---
                                 wordListHtml += `
                                     <li>
                                         <div class="word-content">
                                             <strong>${word.word}</strong>
                                             <p>${word.definition}</p>
-                                            ${imageUrlDisplay}
+                                            ${imageHtml}
                                         </div>
                                         <div class="word-actions">
                                             <button class="edit-btn" data-word-id="${word.id}">
@@ -1115,7 +1154,6 @@
                         }
                         wordListHtml += "</ul>";
 
-                        // *** START NEW CODE ***
                         const deleteButtonHtml =
                             wordsInCategory.length === 0
                                 ? `
@@ -1124,12 +1162,11 @@
                             </button>
                         `
                                 : "";
-                        // *** END NEW CODE ***
 
                         categoryItem.innerHTML = `
                              <div class="category-header">
                                 <h3>${category.name}</h3>
-                                ${deleteButtonHtml}  <!-- NEW: Added delete button here -->
+                                ${deleteButtonHtml}
                             </div>
                             ${wordListHtml}
                         `;
@@ -1281,7 +1318,6 @@
                 const handleListClick = (event) => {
                     const deleteBtn = event.target.closest(".delete-btn");
                     const editBtn = event.target.closest(".edit-btn");
-                    // *** START NEW CODE ***
                     const deleteCategoryBtn = event.target.closest(
                         ".delete-category-btn"
                     );
@@ -1300,7 +1336,6 @@
                             saveData();
                         }
                     } else if (deleteBtn) {
-                        // *** END NEW CODE ***
                         const wordId = deleteBtn.getAttribute("data-word-id");
                         data.words = data.words.filter(
                             (word) => word.id !== wordId
@@ -1383,6 +1418,16 @@
                         editWordInput.value = wordToEdit.word;
                         editDefinitionInput.value = wordToEdit.definition;
                         editImageUrlInput.value = wordToEdit.image || "";
+                        // --- START EDIT: Show/hide image preview in edit modal ---
+                        if (wordToEdit.image) {
+                            editImagePreview.src = wordToEdit.image;
+                            editImagePreviewContainer.classList.remove(
+                                "hidden"
+                            );
+                        } else {
+                            editImagePreviewContainer.classList.add("hidden");
+                        }
+                        // --- END EDIT ---
                         editWordModal.classList.add("active");
                     }
                 };
@@ -1462,6 +1507,18 @@
                         closeEditModal();
                     }
                 });
+
+                // --- START EDIT: Add event listener to update image preview in real-time ---
+                editImageUrlInput.addEventListener("input", () => {
+                    const url = editImageUrlInput.value.trim();
+                    if (url) {
+                        editImagePreview.src = url;
+                        editImagePreviewContainer.classList.remove("hidden");
+                    } else {
+                        editImagePreviewContainer.classList.add("hidden");
+                    }
+                });
+                // --- END EDIT ---
 
                 // --- INITIALIZATION ---
                 loadData();
