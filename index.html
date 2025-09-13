@@ -1525,29 +1525,42 @@
                         (c) => c.name === REVIEW_CATEGORY_NAME
                     );
 
-                    // If "Review Words" category doesn't exist, create it
                     if (!reviewCategory) {
                         reviewCategory = {
                             id: crypto.randomUUID(),
                             name: REVIEW_CATEGORY_NAME,
                         };
-                        // Add it to the beginning of the categories array to ensure it's first in the CSV
                         data.categories.unshift(reviewCategory);
                     }
 
-                    // Find the word in the main data array and update its categoryId
-                    const wordIndex = data.words.findIndex(
-                        (w) => w.id === currentWord.id
+                    const wordAlreadyInReview = data.words.some(
+                        (word) =>
+                            word.categoryId === reviewCategory.id &&
+                            word.word === currentWord.word &&
+                            word.definition === currentWord.definition
                     );
-                    if (wordIndex > -1) {
-                        data.words[wordIndex].categoryId = reviewCategory.id;
-                        saveData();
+
+                    if (wordAlreadyInReview) {
+                        alert(
+                            `"${currentWord.word}" is already in the Review Words deck.`
+                        );
+                        return; // Stop the function here
                     }
 
-                    // Visually update button and then move to next card
-                    sendToReviewBtn.disabled = true;
+                    const newWordForReview = {
+                        id: crypto.randomUUID(), // Assign a new unique ID
+                        categoryId: reviewCategory.id, // Assign to the review category
+                        word: currentWord.word,
+                        definition: currentWord.definition,
+                        image: currentWord.image,
+                        createdAt: new Date().toISOString(),
+                    };
+
+                    data.words.push(newWordForReview);
+                    saveData();
+
                     alert(
-                        `"${currentWord.word}" has been sent to the Review Words deck.`
+                        `"${currentWord.word}" has been copied to the Review Words deck.`
                     );
                     showNextCard();
                 };
